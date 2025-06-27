@@ -1,5 +1,5 @@
 import express from "express"
-import bcypt from "bcrypt"
+import bcrypt from "bcrypt"
 import {prisma} from "../lib/prisma.js"
 import { generateToken, authenticateToken } from "../middleware/auth.js"
 
