@@ -4,8 +4,8 @@ import dotenv from "dotenv"
 import {prisma} from "./lib/prisma.js"
 
 import authRoutes from "./routes/auth.js"
-//import professorRoutes from "./routes/professors.js"
-//import questionRoutes from "./routes/questions.js"
+import professorRoutes from "./routes/professors.js"
+import questionRoutes from "./routes/questions.js"
 //import examRoutes from "./routes/exams.js"
 //import reportRoutes from "./routes/reports.js"
 
@@ -58,8 +58,8 @@ app.get("/health", async (req, res)=>{
 
 // Rutas de la API
 app.use("/api/auth", authRoutes)
-//app.use("/api/professors", professorRoutes)
-//app.use("/api/questions", questionRoutes)
+app.use("/api/professors", professorRoutes)
+app.use("/api/questions", questionRoutes)
 //app.use("/api/exams", examRoutes)
 //app.use("/api/reports", reportRoutes)
 
