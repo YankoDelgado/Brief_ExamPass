@@ -73,10 +73,6 @@ router.get("/:id", authenticateToken, async (req, res) => {
 //Crear nuevo profesor (solo Admin)
 router.post("/", authenticateToken, requireAdmin, async(req, res)=>{
     try{
-        console.log("🔍 POST /api/professors - Iniciando...")
-        console.log("📋 Headers:", req.headers.authorization ? "Token presente" : "Sin token")
-        console.log("📦 Body:", req.body)
-
         const {name,subject} =req.body
 
         console.log("Creando profesor", {name,subject})
