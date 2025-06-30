@@ -8,7 +8,7 @@
     "build": "npm run prisma:generate && npm run prisma:migrate && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite preview --port $PORT --host 0.0.0.0",
+    "start": "serve dist -s -s -L -p $PORT --host 0.0.0.0",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy"
   },
@@ -25,7 +25,8 @@
     "react": "^19.1.0",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.3"
+    "react-router-dom": "^7.6.3",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
