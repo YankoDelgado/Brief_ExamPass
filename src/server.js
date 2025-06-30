@@ -17,7 +17,7 @@ const PORT = process.env.PORT
 //Middleware
 app.use(
     cors({
-        origin: "http://localhost:5173", // Puerto de Vite
+        origin: process.env.VITE_API_URL || "http://localhost:5173",
         credentials: true,
     }),
 )
