@@ -1,157 +1,91 @@
 import API from "../config/axios"
 
-// =================== FUNCIONES PARA ESTUDIANTES ===================
+export const studentService = {
+    // Obtener dashboard del estudiante
+    getDashboardData: async () => {
+        try {
+            const response = await API.get("/student/dashboard")
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo datos del dashboard:", error)
+            throw error
+        }
+    },
 
-// Obtener todos los estudiantes (Admin)
-export const getAllStudents = async (params = {}) => {
-    try {
-        const response = await API.get("/admin/students", { params })
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener estudiantes")
-    }
-}
+    // Obtener exámenes disponibles
+    getAvailableExams: async () => {
+        try {
+            const response = await API.get("/exams/available")
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo exámenes disponibles:", error)
+            throw error
+        }
+    },
 
-// Obtener estudiante por ID
-export const getStudentById = async (id) => {
-    try {
-        const response = await API.get(`/admin/students/${id}`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener estudiante")
-    }
-}
+    // Obtener mis reportes
+    getMyReports: async () => {
+        try {
+            const response = await API.get("/reports/my/reports")
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo reportes:", error)
+            throw error
+        }
+    },
 
-// Crear nuevo estudiante
-export const createStudent = async (studentData) => {
-    try {
-        const response = await API.post("/admin/students", studentData)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al crear estudiante")
-    }
-}
+    // Obtener mi último resultado
+    getLastResult: async () => {
+        try {
+            const response = await API.get("/student/last-result")
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo último resultado:", error)
+            return null
+        }
+    },
 
-// Actualizar estudiante
-export const updateStudent = async (id, studentData) => {
-    try {
-        const response = await API.put(`/admin/students/${id}`, studentData)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al actualizar estudiante")
-    }
-}
+    // Generar reporte después del examen
+    generateReport: async (examResultId) => {
+        try {
+            const response = await API.post(`/reports/generate/${examResultId}`)
+            return response.data
+        } catch (error) {
+            console.error("Error generando reporte:", error)
+            throw error
+        }
+    },
 
-// Eliminar estudiante
-export const deleteStudent = async (id) => {
-    try {
-        const response = await API.delete(`/admin/students/${id}`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al eliminar estudiante")
-    }
-}
+    // Obtener reporte específico
+    getReport: async (reportId) => {
+        try {
+            const response = await API.get(`/reports/${reportId}`)
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo reporte:", error)
+            throw error
+        }
+    },
 
-// Cambiar estado del estudiante
-export const toggleStudentStatus = async (id) => {
-    try {
-        const response = await API.patch(`/admin/students/${id}/toggle-status`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al cambiar estado")
-    }
-}
+    // Obtener historial de exámenes
+    getExamHistory: async () => {
+        try {
+            const response = await API.get("/student/exam-history")
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo historial:", error)
+            throw error
+        }
+    },
 
-// Resetear contraseña del estudiante
-export const resetStudentPassword = async (id) => {
-    try {
-        const response = await API.post(`/admin/students/${id}/reset-password`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al resetear contraseña")
-    }
-}
-
-// Obtener historial de exámenes del estudiante
-export const getStudentExamHistory = async (id) => {
-    try {
-        const response = await API.get(`/admin/students/${id}/exam-history`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener historial")
-    }
-}
-
-// Obtener estadísticas del estudiante
-export const getStudentStatistics = async (id) => {
-    try {
-        const response = await API.get(`/admin/students/${id}/statistics`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener estadísticas")
-    }
-}
-
-// Exportar datos de estudiantes
-export const exportStudentsData = async (format = "csv") => {
-    try {
-        const response = await API.get(`/admin/students/export?format=${format}`, {
-        responseType: "blob",
-        })
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al exportar datos")
-    }
-    }
-
-// =================== FUNCIONES PARA ESTUDIANTE (LADO CLIENTE) ===================
-
-// Obtener perfil del estudiante actual
-export const getStudentProfile = async () => {
-    try {
-        const response = await API.get("/student/profile")
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener perfil")
-    }
-    }
-
-// Actualizar perfil del estudiante
-export const updateStudentProfile = async (profileData) => {
-    try {
-        const response = await API.put("/student/profile", profileData)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al actualizar perfil")
-    }
-}
-
-// Obtener exámenes disponibles para el estudiante
-export const getAvailableExams = async () => {
-    try {
-        const response = await API.get("/student/exams/available")
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener exámenes")
-    }
-}
-
-// Obtener reportes del estudiante
-export const getStudentReports = async () => {
-    try {
-        const response = await API.get("/student/reports")
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener reportes")
-    }
-}
-
-// Obtener reporte específico del estudiante
-export const getStudentReport = async (reportId) => {
-    try {
-        const response = await API.get(`/student/reports/${reportId}`)
-        return response.data
-    } catch (error) {
-        throw new Error(error.response?.data?.error || "Error al obtener reporte")
-    }
+    // Obtener estadísticas personales
+    getPersonalStats: async () => {
+        try {
+            const response = await API.get("/student/statistics")
+            return response.data
+        } catch (error) {
+            console.error("Error obteniendo estadísticas:", error)
+            throw error
+        }
+    },
 }

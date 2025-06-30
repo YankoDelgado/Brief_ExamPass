@@ -119,7 +119,7 @@ function App() {
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="reports/statistics" element={<AdminStatistics />} />
                 <Route path="reports/student/:userId" element={<StudentReport />} />
-
+                
                 {/* Gestión de Estudiantes */}
                 <Route path="students" element={<StudentsList />} />
                 <Route path="students/:id" element={<StudentsView />} />

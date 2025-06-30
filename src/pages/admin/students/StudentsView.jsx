@@ -1,57 +1,49 @@
 import { useState, useEffect } from "react"
-import { useParams, Link, useNavigate } from "react-router-dom"
-import { Container, Row, Col, Card, Button, Badge, Spinner, Alert, Nav, Tab, Table } from "react-bootstrap"
-import {getStudentById,getStudentExamHistory,getStudentStatistics,toggleStudentStatus,resetStudentPassword,deleteStudent} from "../../../services/studentService"
+import { useParams, Link } from "react-router-dom"
+import { Container, Row, Col, Card, Badge, Button, Nav, Tab, Table, Alert, Spinner } from "react-bootstrap"
+import {getStudentById,getStudentStats,changeStudentStatus,resetStudentPassword} from "../../../services/studentService"
 
 const StudentsView = () => {
     const { id } = useParams()
-    const navigate = useNavigate()
     const [student, setStudent] = useState(null)
-    const [examHistory, setExamHistory] = useState([])
-    const [statistics, setStatistics] = useState(null)
+    const [stats, setStats] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
-    const [activeTab, setActiveTab] = useState("info")
     const [actionLoading, setActionLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState("info")
 
-    useEffect(() => {
-        loadStudentData()
-    }, [id])
+    useEffect(() => {loadStudentData()}, [id])
 
     const loadStudentData = async () => {
         try {
             setLoading(true)
-            const [studentData, historyData, statsData] = await Promise.all([
-                getStudentById(id),
-                getStudentExamHistory(id),
-                getStudentStatistics(id),
-            ])
-
+            const [studentData, statsData] = await Promise.all([getStudentById(id), getStudentStats(id)])
             setStudent(studentData)
-            setExamHistory(historyData.exams || [])
-            setStatistics(statsData)
+            setStats(statsData)
             setError("")
-        } catch (err) {
-            setError(err.message || "Error al cargar datos del estudiante")
+        } catch (error) {
+            setError("Error al cargar datos del estudiante")
+            console.error("Error:", error)
         } finally {
             setLoading(false)
         }
     }
 
-    const handleToggleStatus = async () => {
+    const handleStatusChange = async (newStatus) => {
         try {
             setActionLoading(true)
-            await toggleStudentStatus(id)
-            loadStudentData()
-        } catch (err) {
-            setError(err.message || "Error al cambiar estado del estudiante")
+            await changeStudentStatus(id, newStatus)
+            await loadStudentData()
+            setError("")
+        } catch (error) {
+            setError("Error al cambiar estado del estudiante")
         } finally {
             setActionLoading(false)
         }
     }
 
     const handleResetPassword = async () => {
-        if (!window.confirm("¿Estás seguro de que quieres resetear la contraseña de este estudiante?")) {
+        if (!window.confirm("¿Estás seguro de resetear la contraseña de este estudiante?")) {
             return
         }
 
@@ -59,59 +51,29 @@ const StudentsView = () => {
             setActionLoading(true)
             const response = await resetStudentPassword(id)
             alert(`Nueva contraseña: ${response.newPassword}`)
-        } catch (err) {
-            setError(err.message || "Error al resetear contraseña")
+            setError("")
+        } catch (error) {
+            setError("Error al resetear contraseña")
         } finally {
             setActionLoading(false)
         }
     }
 
-    const handleDelete = async () => {
-        if (!window.confirm("¿Estás seguro de que quieres eliminar este estudiante? Esta acción no se puede deshacer.")) {
-            return
+    const getStatusBadge = (status) => {
+        const variants = {
+            ACTIVE: "success",
+            INACTIVE: "secondary",
+            SUSPENDED: "danger",
         }
-
-        try {
-            setActionLoading(true)
-            await deleteStudent(id)
-            navigate("/admin/students")
-        } catch (err) {
-            setError(err.message || "Error al eliminar estudiante")
-            setActionLoading(false)
-        }
+        return <Badge bg={variants[status] || "secondary"}>{status}</Badge>
     }
 
-    const getStatusVariant = (status) => {
-        switch (status) {
-            case "active":
-                return "success"
-            case "inactive":
-                return "secondary"
-            case "suspended":
-                return "warning"
-            default:
-                return "secondary"
-        }
-    }
-
-    const getStatusText = (status) => {
-        switch (status) {
-            case "active":
-                return "Activo"
-            case "inactive":
-                return "Inactivo"
-            case "suspended":
-                return "Suspendido"
-            default:
-                return "Desconocido"
-        }
-    }
-
-    const getScoreVariant = (score) => {
-        if (score >= 90) return "success"
-        if (score >= 70) return "primary"
-        if (score >= 60) return "warning"
-        return "danger"
+    const getPerformanceBadge = (score) => {
+        if (score >= 90) return <Badge bg="success">Excelente</Badge>
+        if (score >= 80) return <Badge bg="primary">Muy Bueno</Badge>
+        if (score >= 70) return <Badge bg="warning">Bueno</Badge>
+        if (score >= 60) return <Badge bg="secondary">Regular</Badge>
+        return <Badge bg="danger">Necesita Mejora</Badge>
     }
 
     if (loading) {
@@ -126,349 +88,318 @@ const StudentsView = () => {
 
     if (error && !student) {
         return (
-            <Container>
+            <Container className="py-4">
                 <Alert variant="danger">{error}</Alert>
+                <Button as={Link} to="/admin/students" variant="primary">
+                Volver a la Lista
+                </Button>
             </Container>
         )
     }
 
     return (
-        <Container fluid>
-        {/* Header */}
+        <Container fluid className="py-4">
         <Row className="mb-4">
             <Col>
-            <div className="d-flex justify-content-between align-items-start">
-                <div className="d-flex align-items-center">
+            <div className="d-flex justify-content-between align-items-center">
+                <div>
                 <Button as={Link} to="/admin/students" variant="outline-secondary" className="me-3">
                     ← Volver
                 </Button>
-                <div>
-                    <h2 className="mb-1">
-                    {student?.firstName} {student?.lastName}
-                    </h2>
-                    <p className="text-muted mb-0">ID: {student?.studentCode || student?.id}</p>
+                <h2 className="text-primary fw-bold d-inline">{student?.name || "Estudiante"}</h2>
+                <div className="mt-1">
+                    {getStatusBadge(student?.status)}
+                    <Badge bg="info" className="ms-2">
+                    {student?.studentCode}
+                    </Badge>
                 </div>
                 </div>
                 <div className="d-flex gap-2">
+                <Button variant="outline-warning" onClick={handleResetPassword} disabled={actionLoading}>
+                    Reset Contraseña
+                </Button>
                 <Button
-                    variant={student?.status === "active" ? "warning" : "success"}
-                    onClick={handleToggleStatus}
+                    variant={student?.status === "ACTIVE" ? "outline-secondary" : "outline-success"}
+                    onClick={() => handleStatusChange(student?.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")}
                     disabled={actionLoading}
                 >
-                    {student?.status === "active" ? "⏸️ Desactivar" : "▶️ Activar"}
+                    {student?.status === "ACTIVE" ? "Desactivar" : "Activar"}
                 </Button>
-                <Button variant="info" onClick={handleResetPassword} disabled={actionLoading}>
-                    🔑 Resetear Contraseña
-                </Button>
-                <Button as={Link} to={`/admin/students/${id}/edit`} variant="primary">
-                    ✏️ Editar
-                </Button>
-                <Button variant="danger" onClick={handleDelete} disabled={actionLoading}>
-                    🗑️ Eliminar
+                <Button as={Link} to={`/admin/students/edit/${id}`} variant="primary">
+                    Editar
                 </Button>
                 </div>
             </div>
             </Col>
         </Row>
 
-        {/* Error Message */}
         {error && (
-            <Row className="mb-4">
+            <Row className="mb-3">
             <Col>
-                <Alert variant="danger">{error}</Alert>
+                <Alert variant="danger" dismissible onClose={() => setError("")}>
+                {error}
+                </Alert>
             </Col>
             </Row>
         )}
 
-        {/* Información básica */}
-        <Row className="mb-4">
+        <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
+            <Row>
             <Col>
-            <Card>
-                <Card.Body>
-                <div className="d-flex align-items-center">
-                    <div
-                    className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-4"
-                    style={{ width: "80px", height: "80px", fontSize: "2rem" }}
-                    >
-                    <strong>
-                        {student?.firstName?.charAt(0)}
-                        {student?.lastName?.charAt(0)}
-                    </strong>
-                    </div>
-                    <div className="flex-grow-1">
+                <Nav variant="tabs" className="mb-4">
+                <Nav.Item>
+                    <Nav.Link eventKey="info">Información Personal</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                    <Nav.Link eventKey="stats">Estadísticas</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                    <Nav.Link eventKey="exams">Historial de Exámenes</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                    <Nav.Link eventKey="reports">Reportes</Nav.Link>
+                </Nav.Item>
+                </Nav>
+
+                <Tab.Content>
+                {/* Información Personal */}
+                <Tab.Pane eventKey="info">
                     <Row>
-                        <Col md={4}>
-                        <p className="text-muted mb-1">Email</p>
-                        <p className="fw-bold mb-3">{student?.email}</p>
-                        </Col>
-                        <Col md={4}>
-                        <p className="text-muted mb-1">Teléfono</p>
-                        <p className="fw-bold mb-3">{student?.phone || "No registrado"}</p>
-                        </Col>
-                        <Col md={4}>
-                        <p className="text-muted mb-1">Estado</p>
-                        <Badge bg={getStatusVariant(student?.status)} className="fs-6">
-                            {getStatusText(student?.status)}
-                        </Badge>
-                        </Col>
-                    </Row>
-                    </div>
-                </div>
-                </Card.Body>
-            </Card>
-            </Col>
-        </Row>
-
-        {/* Estadísticas rápidas */}
-        {statistics && (
-            <Row className="mb-4">
-            <Col md={3}>
-                <Card className="text-center">
-                <Card.Body>
-                    <div className="display-4 text-primary mb-2">📚</div>
-                    <h3 className="mb-1">{statistics.totalExams || 0}</h3>
-                    <p className="text-muted mb-0">Exámenes Realizados</p>
-                </Card.Body>
-                </Card>
-            </Col>
-            <Col md={3}>
-                <Card className="text-center">
-                <Card.Body>
-                    <div className="display-4 text-success mb-2">📊</div>
-                    <h3 className="mb-1">{(statistics.averageScore || 0).toFixed(1)}%</h3>
-                    <p className="text-muted mb-0">Promedio General</p>
-                </Card.Body>
-                </Card>
-            </Col>
-            <Col md={3}>
-                <Card className="text-center">
-                <Card.Body>
-                    <div className="display-4 text-warning mb-2">🏆</div>
-                    <h3 className="mb-1">{(statistics.bestScore || 0).toFixed(1)}%</h3>
-                    <p className="text-muted mb-0">Mejor Puntaje</p>
-                </Card.Body>
-                </Card>
-            </Col>
-            <Col md={3}>
-                <Card className="text-center">
-                <Card.Body>
-                    <div className="display-4 text-info mb-2">📅</div>
-                    <p className="fw-bold mb-1">
-                    {statistics.lastExamDate ? new Date(statistics.lastExamDate).toLocaleDateString() : "Nunca"}
-                    </p>
-                    <p className="text-muted mb-0">Último Examen</p>
-                </Card.Body>
-                </Card>
-            </Col>
-            </Row>
-        )}
-
-        {/* Tabs */}
-        <Row>
-            <Col>
-            <Card>
-                <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
-                <Card.Header>
-                    <Nav variant="tabs">
-                    <Nav.Item>
-                        <Nav.Link eventKey="info">📋 Información Personal</Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Nav.Link eventKey="exams">📚 Historial de Exámenes</Nav.Link>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Nav.Link eventKey="stats">📊 Estadísticas Detalladas</Nav.Link>
-                    </Nav.Item>
-                    </Nav>
-                </Card.Header>
-                <Card.Body>
-                    <Tab.Content>
-                    {/* Tab: Información Personal */}
-                    <Tab.Pane eventKey="info">
-                        <Row>
-                        <Col md={6}>
-                            <h5 className="mb-3">Datos Personales</h5>
+                    <Col md={6}>
+                        <Card>
+                        <Card.Header>
+                            <h5 className="mb-0">Datos Personales</h5>
+                        </Card.Header>
+                        <Card.Body>
                             <div className="mb-3">
-                            <strong>Nombre completo:</strong>
-                            <p className="mb-2">
-                                {student?.firstName} {student?.lastName}
-                            </p>
+                            <strong>Nombre Completo:</strong>
+                            <div>{student?.name || "N/A"}</div>
                             </div>
                             <div className="mb-3">
                             <strong>Email:</strong>
-                            <p className="mb-2">{student?.email}</p>
+                            <div>{student?.email || "N/A"}</div>
                             </div>
                             <div className="mb-3">
-                            <strong>Teléfono:</strong>
-                            <p className="mb-2">{student?.phone || "No registrado"}</p>
+                            <strong>Código de Estudiante:</strong>
+                            <div>
+                                <code>{student?.studentCode || "N/A"}</code>
                             </div>
-                            <div className="mb-3">
-                            <strong>Fecha de nacimiento:</strong>
-                            <p className="mb-2">
-                                {student?.birthDate ? new Date(student.birthDate).toLocaleDateString() : "No registrada"}
-                            </p>
-                            </div>
-                        </Col>
-                        <Col md={6}>
-                            <h5 className="mb-3">Información Académica</h5>
-                            <div className="mb-3">
-                            <strong>Código de estudiante:</strong>
-                            <p className="mb-2">{student?.studentCode || student?.id}</p>
                             </div>
                             <div className="mb-3">
                             <strong>Carrera:</strong>
-                            <p className="mb-2">{student?.career || "No especificada"}</p>
+                            <div>{student?.career || "N/A"}</div>
                             </div>
                             <div className="mb-3">
                             <strong>Semestre:</strong>
-                            <p className="mb-2">{student?.semester || "No especificado"}</p>
+                            <div>{student?.semester || "N/A"}</div>
                             </div>
                             <div className="mb-3">
-                            <strong>Fecha de registro:</strong>
-                            <p className="mb-2">{new Date(student?.createdAt).toLocaleDateString()}</p>
+                            <strong>Teléfono:</strong>
+                            <div>{student?.phone || "N/A"}</div>
                             </div>
-                        </Col>
-                        </Row>
-                    </Tab.Pane>
+                        </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col md={6}>
+                        <Card>
+                        <Card.Header>
+                            <h5 className="mb-0">Información del Sistema</h5>
+                        </Card.Header>
+                        <Card.Body>
+                            <div className="mb-3">
+                            <strong>Estado:</strong>
+                            <div>{getStatusBadge(student?.status)}</div>
+                            </div>
+                            <div className="mb-3">
+                            <strong>Fecha de Registro:</strong>
+                            <div>{student?.createdAt ? new Date(student.createdAt).toLocaleDateString() : "N/A"}</div>
+                            </div>
+                            <div className="mb-3">
+                            <strong>Último Acceso:</strong>
+                            <div>{student?.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : "Nunca"}</div>
+                            </div>
+                            <div className="mb-3">
+                            <strong>Exámenes Realizados:</strong>
+                            <div>{stats?.totalExams || 0}</div>
+                            </div>
+                            <div className="mb-3">
+                            <strong>Promedio General:</strong>
+                            <div>
+                                {stats?.averageScore ? `${stats.averageScore.toFixed(1)}%` : "N/A"}
+                                {stats?.averageScore && (
+                                <div className="mt-1">{getPerformanceBadge(stats.averageScore)}</div>
+                                )}
+                            </div>
+                            </div>
+                        </Card.Body>
+                        </Card>
+                    </Col>
+                    </Row>
+                </Tab.Pane>
 
-                    {/* Tab: Historial de Exámenes */}
-                    <Tab.Pane eventKey="exams">
-                        <h5 className="mb-3">Historial de Exámenes</h5>
-                        {examHistory.length === 0 ? (
-                        <div className="text-center py-5">
-                            <div style={{ fontSize: "4rem" }}>📚</div>
-                            <h4>No hay exámenes realizados</h4>
-                            <p className="text-muted">Este estudiante no ha realizado exámenes aún</p>
-                        </div>
-                        ) : (
+                {/* Estadísticas */}
+                <Tab.Pane eventKey="stats">
+                    <Row>
+                    <Col md={3}>
+                        <Card className="text-center">
+                        <Card.Body>
+                            <h3 className="text-primary">{stats?.totalExams || 0}</h3>
+                            <p className="mb-0">Exámenes Realizados</p>
+                        </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col md={3}>
+                        <Card className="text-center">
+                        <Card.Body>
+                            <h3 className="text-success">
+                            {stats?.averageScore ? `${stats.averageScore.toFixed(1)}%` : "N/A"}
+                            </h3>
+                            <p className="mb-0">Promedio General</p>
+                        </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col md={3}>
+                        <Card className="text-center">
+                        <Card.Body>
+                            <h3 className="text-info">{stats?.bestScore || 0}%</h3>
+                            <p className="mb-0">Mejor Puntaje</p>
+                        </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col md={3}>
+                        <Card className="text-center">
+                        <Card.Body>
+                            <h3 className="text-warning">{stats?.passedExams || 0}</h3>
+                            <p className="mb-0">Exámenes Aprobados</p>
+                        </Card.Body>
+                        </Card>
+                    </Col>
+                    </Row>
+
+                    {stats?.subjectStats && (
+                    <Row className="mt-4">
+                        <Col>
+                        <Card>
+                            <Card.Header>
+                            <h5 className="mb-0">Rendimiento por Materia</h5>
+                            </Card.Header>
+                            <Card.Body>
+                            <Table responsive>
+                                <thead>
+                                <tr>
+                                    <th>Materia</th>
+                                    <th>Exámenes</th>
+                                    <th>Promedio</th>
+                                    <th>Mejor Puntaje</th>
+                                    <th>Rendimiento</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {stats.subjectStats.map((subject, index) => (
+                                    <tr key={index}>
+                                    <td>{subject.name}</td>
+                                    <td>{subject.totalExams}</td>
+                                    <td>{subject.average.toFixed(1)}%</td>
+                                    <td>{subject.bestScore}%</td>
+                                    <td>{getPerformanceBadge(subject.average)}</td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </Table>
+                            </Card.Body>
+                        </Card>
+                        </Col>
+                    </Row>
+                    )}
+                </Tab.Pane>
+
+                {/* Historial de Exámenes */}
+                <Tab.Pane eventKey="exams">
+                    <Card>
+                    <Card.Header>
+                        <h5 className="mb-0">Historial de Exámenes</h5>
+                    </Card.Header>
+                    <Card.Body>
                         <Table responsive hover>
-                            <thead>
+                        <thead>
                             <tr>
-                                <th>Examen</th>
-                                <th>Fecha</th>
-                                <th>Puntaje</th>
-                                <th>Estado</th>
-                                <th>Tiempo</th>
+                            <th>Examen</th>
+                            <th>Materia</th>
+                            <th>Fecha</th>
+                            <th>Puntaje</th>
+                            <th>Estado</th>
+                            <th>Tiempo</th>
+                            <th>Acciones</th>
                             </tr>
-                            </thead>
-                            <tbody>
-                            {examHistory.map((exam) => (
-                                <tr key={exam.id}>
-                                <td>
-                                    <div className="fw-bold">{exam.title}</div>
-                                    <small className="text-muted">{exam.subject}</small>
+                        </thead>
+                        <tbody>
+                            {stats?.examHistory?.length === 0 ? (
+                            <tr>
+                                <td colSpan="7" className="text-center py-4">
+                                No hay exámenes realizados
                                 </td>
+                            </tr>
+                            ) : (
+                            stats?.examHistory?.map((exam, index) => (
+                                <tr key={index}>
+                                <td>{exam.title}</td>
+                                <td>{exam.subject}</td>
                                 <td>{new Date(exam.completedAt).toLocaleDateString()}</td>
                                 <td>
-                                    <Badge bg={getScoreVariant(exam.score)}>{exam.score.toFixed(1)}%</Badge>
+                                    <strong>{exam.score}%</strong>
                                 </td>
                                 <td>
-                                    <Badge bg={exam.passed ? "success" : "danger"}>
-                                    {exam.passed ? "Aprobado" : "Reprobado"}
+                                    <Badge bg={exam.score >= 60 ? "success" : "danger"}>
+                                    {exam.score >= 60 ? "Aprobado" : "Reprobado"}
                                     </Badge>
                                 </td>
                                 <td>{exam.timeSpent} min</td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </Table>
-                        )}
-                    </Tab.Pane>
-
-                    {/* Tab: Estadísticas Detalladas */}
-                    <Tab.Pane eventKey="stats">
-                        {statistics && (
-                        <Row>
-                            <Col md={6}>
-                            <Card className="mb-4">
-                                <Card.Header>
-                                <h6 className="mb-0">Rendimiento por Materia</h6>
-                                </Card.Header>
-                                <Card.Body>
-                                {statistics.subjectStats && statistics.subjectStats.length > 0 ? (
-                                    statistics.subjectStats.map((subject, index) => (
-                                    <div key={index} className="d-flex justify-content-between align-items-center mb-2">
-                                        <span>{subject.name}</span>
-                                        <Badge bg={getScoreVariant(subject.average)}>{subject.average.toFixed(1)}%</Badge>
-                                    </div>
-                                    ))
-                                ) : (
-                                    <p className="text-muted">No hay datos disponibles</p>
-                                )}
-                                </Card.Body>
-                            </Card>
-                            </Col>
-                            <Col md={6}>
-                            <Card className="mb-4">
-                                <Card.Header>
-                                <h6 className="mb-0">Análisis de Rendimiento</h6>
-                                </Card.Header>
-                                <Card.Body>
-                                <div className="d-flex justify-content-between mb-2">
-                                    <span>Tendencia general:</span>
-                                    <Badge
-                                    bg={
-                                        statistics.trend === "improving"
-                                        ? "success"
-                                        : statistics.trend === "declining"
-                                            ? "danger"
-                                            : "warning"
-                                    }
+                                <td>
+                                    <Button
+                                    as={Link}
+                                    to={`/admin/exams/${exam.examId}/results`}
+                                    variant="outline-primary"
+                                    size="sm"
                                     >
-                                    {statistics.trend === "improving"
-                                        ? "📈 Mejorando"
-                                        : statistics.trend === "declining"
-                                        ? "📉 Descendente"
-                                        : "➡️ Estable"}
-                                    </Badge>
-                                </div>
-                                <div className="d-flex justify-content-between mb-2">
-                                    <span>Exámenes aprobados:</span>
-                                    <span>
-                                    {statistics.passedExams || 0} / {statistics.totalExams || 0}
-                                    </span>
-                                </div>
-                                <div className="d-flex justify-content-between mb-2">
-                                    <span>Tasa de aprobación:</span>
-                                    <span>
-                                    {statistics.totalExams > 0
-                                        ? ((statistics.passedExams / statistics.totalExams) * 100).toFixed(1)
-                                        : 0}
-                                    %
-                                    </span>
-                                </div>
-                                </Card.Body>
-                            </Card>
-                            </Col>
-                        </Row>
-                        )}
-
-                        {statistics?.recommendations && (
-                        <Card>
-                            <Card.Header>
-                            <h6 className="mb-0">Recomendaciones</h6>
-                            </Card.Header>
-                            <Card.Body>
-                            {statistics.recommendations.length > 0 ? (
-                                statistics.recommendations.map((rec, index) => (
-                                <div key={index} className="d-flex align-items-start mb-2">
-                                    <span className="text-primary me-2">💡</span>
-                                    <span>{rec}</span>
-                                </div>
-                                ))
-                            ) : (
-                                <p className="text-muted">No hay recomendaciones disponibles</p>
+                                    Ver Detalles
+                                    </Button>
+                                </td>
+                                </tr>
+                            ))
                             )}
-                            </Card.Body>
-                        </Card>
-                        )}
-                    </Tab.Pane>
-                    </Tab.Content>
-                </Card.Body>
-                </Tab.Container>
-            </Card>
+                        </tbody>
+                        </Table>
+                    </Card.Body>
+                    </Card>
+                </Tab.Pane>
+
+                {/* Reportes */}
+                <Tab.Pane eventKey="reports">
+                    <Card>
+                    <Card.Header>
+                        <h5 className="mb-0">Reportes Generados</h5>
+                    </Card.Header>
+                    <Card.Body>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                        <p className="mb-0">Generar reportes detallados del estudiante</p>
+                        <div className="d-flex gap-2">
+                            <Button as={Link} to={`/admin/reports/student/${id}`} variant="primary">
+                            Ver Reporte Completo
+                            </Button>
+                            <Button variant="outline-success">Exportar PDF</Button>
+                        </div>
+                        </div>
+                        <Alert variant="info">
+                        <strong>Información:</strong> Los reportes incluyen análisis detallado del rendimiento, tendencias
+                        de aprendizaje y recomendaciones personalizadas.
+                        </Alert>
+                    </Card.Body>
+                    </Card>
+                </Tab.Pane>
+                </Tab.Content>
             </Col>
-        </Row>
+            </Row>
+        </Tab.Container>
         </Container>
     )
 }

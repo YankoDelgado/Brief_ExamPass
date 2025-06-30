@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
+import {Container,Row,Col,Card,Table,Button,Form,InputGroup,Badge,Spinner,Alert,Modal} from "react-bootstrap"
 import { Link } from "react-router-dom"
-import { Container, Row, Col, Card, Table, Button, Form, Badge, Spinner, Alert, Modal } from "react-bootstrap"
-import {getAllStudents,deleteStudent,toggleStudentStatus,exportStudentsData,resetStudentPassword} from "../../../services/studentService"
+import {getAllStudents,changeStudentStatus,resetStudentPassword,deleteStudent,exportStudents} from "../../../services/studentService"
 
 const StudentsList = () => {
     const [students, setStudents] = useState([])
@@ -12,7 +12,7 @@ const StudentsList = () => {
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
-    const [studentToDelete, setStudentToDelete] = useState(null)
+    const [selectedStudent, setSelectedStudent] = useState(null)
     const [actionLoading, setActionLoading] = useState(false)
 
     useEffect(() => {loadStudents()}, [currentPage, searchTerm, statusFilter])
@@ -31,59 +31,29 @@ const StudentsList = () => {
             setStudents(response.students || [])
             setTotalPages(response.totalPages || 1)
             setError("")
-        } catch (err) {
-            setError(err.message || "Error al cargar estudiantes")
-            setStudents([])
+        } catch (error) {
+            setError("Error al cargar estudiantes")
+            console.error("Error:", error)
         } finally {
             setLoading(false)
         }
     }
 
-    const handleSearch = (e) => {
-        setSearchTerm(e.target.value)
-        setCurrentPage(1)
-    }
-
-    const handleStatusFilter = (e) => {
-        setStatusFilter(e.target.value)
-        setCurrentPage(1)
-    }
-
-    const handleDeleteClick = (student) => {
-        setStudentToDelete(student)
-        setShowDeleteModal(true)
-    }
-
-    const handleDeleteConfirm = async () => {
-        if (!studentToDelete) return
-
+    const handleStatusChange = async (studentId, newStatus) => {
         try {
             setActionLoading(true)
-            await deleteStudent(studentToDelete.id)
-            setShowDeleteModal(false)
-            setStudentToDelete(null)
-            loadStudents()
-        } catch (err) {
-            setError(err.message || "Error al eliminar estudiante")
-        } finally {
-            setActionLoading(false)
-        }
-    }
-
-    const handleToggleStatus = async (studentId) => {
-        try {
-            setActionLoading(true)
-            await toggleStudentStatus(studentId)
-            loadStudents()
-        } catch (err) {
-            setError(err.message || "Error al cambiar estado del estudiante")
+            await changeStudentStatus(studentId, newStatus)
+            await loadStudents()
+            setError("")
+        } catch (error) {
+            setError("Error al cambiar estado del estudiante")
         } finally {
             setActionLoading(false)
         }
     }
 
     const handleResetPassword = async (studentId) => {
-        if (!window.confirm("¿Estás seguro de que quieres resetear la contraseña de este estudiante?")) {
+        if (!window.confirm("¿Estás seguro de resetear la contraseña de este estudiante?")) {
             return
         }
 
@@ -91,8 +61,24 @@ const StudentsList = () => {
             setActionLoading(true)
             const response = await resetStudentPassword(studentId)
             alert(`Nueva contraseña: ${response.newPassword}`)
-        } catch (err) {
-            setError(err.message || "Error al resetear contraseña")
+            setError("")
+        } catch (error) {
+            setError("Error al resetear contraseña")
+        } finally {
+            setActionLoading(false)
+        }
+    }
+
+    const handleDeleteStudent = async () => {
+        try {
+            setActionLoading(true)
+            await deleteStudent(selectedStudent.id)
+            await loadStudents()
+            setShowDeleteModal(false)
+            setSelectedStudent(null)
+            setError("")
+        } catch (error) {
+            setError("Error al eliminar estudiante")
         } finally {
             setActionLoading(false)
         }
@@ -100,8 +86,7 @@ const StudentsList = () => {
 
     const handleExport = async (format) => {
         try {
-            setActionLoading(true)
-            const blob = await exportStudentsData(format)
+            const blob = await exportStudents(format)
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
@@ -110,38 +95,27 @@ const StudentsList = () => {
             a.click()
             window.URL.revokeObjectURL(url)
             document.body.removeChild(a)
-        } catch (err) {
-            setError(err.message || "Error al exportar datos")
-        } finally {
-            setActionLoading(false)
+        } catch (error) {
+            setError("Error al exportar estudiantes")
         }
     }
 
-    const getStatusVariant = (status) => {
-        switch (status) {
-            case "active":
-                return "success"
-            case "inactive":
-                return "secondary"
-            case "suspended":
-                return "warning"
-            default:
-                return "secondary"
+    const getStatusBadge = (status) => {
+        const variants = {
+            ACTIVE: "success",
+            INACTIVE: "secondary",
+            SUSPENDED: "danger",
         }
+        return <Badge bg={variants[status] || "secondary"}>{status}</Badge>
     }
 
-    const getStatusText = (status) => {
-        switch (status) {
-            case "active":
-                return "Activo"
-            case "inactive":
-                return "Inactivo"
-            case "suspended":
-                return "Suspendido"
-            default:
-                return "Desconocido"
-        }
-    }
+    const filteredStudents = students.filter((student) => {
+        const matchesSearch =
+        student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.studentCode?.toLowerCase().includes(searchTerm.toLowerCase())
+        return matchesSearch
+    })
 
     if (loading) {
         return (
@@ -154,210 +128,157 @@ const StudentsList = () => {
     }
 
     return (
-        <Container fluid>
+        <Container fluid className="py-4">
         <Row className="mb-4">
             <Col>
             <div className="d-flex justify-content-between align-items-center">
-                <div>
-                <h2 className="mb-1">Gestión de Estudiantes</h2>
-                <p className="text-muted">Administra todos los estudiantes del sistema</p>
-                </div>
+                <h2 className="text-primary fw-bold">Gestión de Estudiantes</h2>
                 <div className="d-flex gap-2">
-                <Button variant="success" onClick={() => handleExport("csv")} disabled={actionLoading}>
-                    📊 Exportar CSV
+                <Button variant="outline-success" onClick={() => handleExport("csv")}>
+                    Exportar CSV
                 </Button>
-                <Button variant="info" onClick={() => handleExport("pdf")} disabled={actionLoading}>
-                    📄 Exportar PDF
+                <Button variant="outline-danger" onClick={() => handleExport("pdf")}>
+                    Exportar PDF
                 </Button>
                 <Button as={Link} to="/admin/students/create" variant="primary">
-                    ➕ Nuevo Estudiante
+                    Nuevo Estudiante
                 </Button>
                 </div>
             </div>
             </Col>
         </Row>
 
-        {/* Filtros */}
-        <Row className="mb-4">
-            <Col md={6}>
-            <Form.Group>
-                <Form.Label>Buscar estudiante</Form.Label>
-                <Form.Control
-                type="text"
-                placeholder="Nombre, email o código..."
-                value={searchTerm}
-                onChange={handleSearch}
-                />
-            </Form.Group>
-            </Col>
-            <Col md={4}>
-            <Form.Group>
-                <Form.Label>Estado</Form.Label>
-                <Form.Select value={statusFilter} onChange={handleStatusFilter}>
-                <option value="all">Todos los estados</option>
-                <option value="active">Activos</option>
-                <option value="inactive">Inactivos</option>
-                <option value="suspended">Suspendidos</option>
-                </Form.Select>
-            </Form.Group>
-            </Col>
-            <Col md={2} className="d-flex align-items-end">
-            <Button
-                variant="outline-secondary"
-                onClick={() => {
-                setSearchTerm("")
-                setStatusFilter("all")
-                setCurrentPage(1)
-                }}
-            >
-                🔄 Limpiar
-            </Button>
-            </Col>
-        </Row>
-
-        {/* Error Message */}
         {error && (
-            <Row className="mb-4">
+            <Row className="mb-3">
             <Col>
-                <Alert variant="danger">{error}</Alert>
+                <Alert variant="danger" dismissible onClose={() => setError("")}>
+                {error}
+                </Alert>
             </Col>
             </Row>
         )}
 
-        {/* Tabla de estudiantes */}
+        <Row className="mb-4">
+            <Col md={6}>
+            <InputGroup>
+                <Form.Control
+                type="text"
+                placeholder="Buscar por nombre, email o código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </InputGroup>
+            </Col>
+            <Col md={3}>
+            <Form.Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="all">Todos los estados</option>
+                <option value="ACTIVE">Activos</option>
+                <option value="INACTIVE">Inactivos</option>
+                <option value="SUSPENDED">Suspendidos</option>
+            </Form.Select>
+            </Col>
+        </Row>
+
         <Row>
             <Col>
             <Card>
                 <Card.Body>
-                {students.length === 0 ? (
-                    <div className="text-center py-5">
-                    <div style={{ fontSize: "4rem" }}>👥</div>
-                    <h4>No se encontraron estudiantes</h4>
-                    <p className="text-muted">Intenta ajustar los filtros de búsqueda</p>
-                    </div>
-                ) : (
-                    <Table responsive hover>
+                <Table responsive hover>
                     <thead>
-                        <tr>
-                        <th>Estudiante</th>
-                        <th>Contacto</th>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
                         <th>Estado</th>
-                        <th>Estadísticas</th>
-                        <th>Registro</th>
-                        <th className="text-center">Acciones</th>
-                        </tr>
+                        <th>Fecha Registro</th>
+                        <th>Último Acceso</th>
+                        <th>Acciones</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {students.map((student) => (
+                    {filteredStudents.length === 0 ? (
+                        <tr>
+                        <td colSpan="7" className="text-center py-4">
+                            No se encontraron estudiantes
+                        </td>
+                        </tr>
+                    ) : (
+                        filteredStudents.map((student) => (
                         <tr key={student.id}>
                             <td>
-                            <div className="d-flex align-items-center">
-                                <div
-                                className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3"
-                                style={{ width: "40px", height: "40px" }}
-                                >
-                                <strong>
-                                    {student.firstName?.charAt(0)}
-                                    {student.lastName?.charAt(0)}
-                                </strong>
-                                </div>
-                                <div>
-                                <div className="fw-bold">
-                                    {student.firstName} {student.lastName}
-                                </div>
-                                <small className="text-muted">ID: {student.studentCode || student.id}</small>
-                                </div>
+                            <code>{student.studentCode}</code>
+                            </td>
+                            <td>
+                            <div>
+                                <strong>{student.name}</strong>
+                                {student.career && <div className="text-muted small">{student.career}</div>}
                             </div>
                             </td>
+                            <td>{student.email}</td>
+                            <td>{getStatusBadge(student.status)}</td>
+                            <td>{student.createdAt ? new Date(student.createdAt).toLocaleDateString() : "N/A"}</td>
+                            <td>{student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : "Nunca"}</td>
                             <td>
-                            <div>{student.email}</div>
-                            <small className="text-muted">{student.phone || "Sin teléfono"}</small>
-                            </td>
-                            <td>
-                            <Badge bg={getStatusVariant(student.status)}>{getStatusText(student.status)}</Badge>
-                            </td>
-                            <td>
-                            <div>Exámenes: {student.totalExams || 0}</div>
-                            <small className="text-muted">Promedio: {student.averageScore || 0}%</small>
-                            </td>
-                            <td>
-                            <small>{new Date(student.createdAt).toLocaleDateString()}</small>
-                            </td>
-                            <td>
-                            <div className="d-flex justify-content-center gap-1">
-                                <Button
-                                as={Link}
-                                to={`/admin/students/${student.id}`}
-                                variant="outline-primary"
-                                size="sm"
-                                title="Ver detalles"
-                                >
-                                👁️
-                                </Button>
-                                <Button
-                                as={Link}
-                                to={`/admin/students/${student.id}/edit`}
-                                variant="outline-success"
-                                size="sm"
-                                title="Editar"
-                                >
-                                ✏️
+                            <div className="d-flex gap-1">
+                                <Button as={Link} to={`/admin/students/${student.id}`} variant="outline-primary" size="sm">
+                                Ver
                                 </Button>
                                 <Button
                                 variant="outline-warning"
                                 size="sm"
-                                onClick={() => handleToggleStatus(student.id)}
-                                title={student.status === "active" ? "Desactivar" : "Activar"}
+                                onClick={() => handleResetPassword(student.id)}
                                 disabled={actionLoading}
                                 >
-                                {student.status === "active" ? "⏸️" : "▶️"}
+                                Reset
                                 </Button>
                                 <Button
-                                variant="outline-info"
+                                variant={student.status === "ACTIVE" ? "outline-secondary" : "outline-success"}
                                 size="sm"
-                                onClick={() => handleResetPassword(student.id)}
-                                title="Resetear contraseña"
+                                onClick={() =>
+                                    handleStatusChange(student.id, student.status === "ACTIVE" ? "INACTIVE" : "ACTIVE")
+                                }
                                 disabled={actionLoading}
                                 >
-                                🔑
+                                {student.status === "ACTIVE" ? "Desactivar" : "Activar"}
                                 </Button>
                                 <Button
                                 variant="outline-danger"
                                 size="sm"
-                                onClick={() => handleDeleteClick(student)}
-                                title="Eliminar"
+                                onClick={() => {
+                                    setSelectedStudent(student)
+                                    setShowDeleteModal(true)
+                                }}
                                 disabled={actionLoading}
                                 >
-                                🗑️
+                                Eliminar
                                 </Button>
                             </div>
                             </td>
                         </tr>
-                        ))}
+                        ))
+                    )}
                     </tbody>
-                    </Table>
-                )}
+                </Table>
 
-                {/* Paginación */}
                 {totalPages > 1 && (
-                    <div className="d-flex justify-content-center mt-4">
+                    <div className="d-flex justify-content-center mt-3">
                     <Button
                         variant="outline-primary"
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                         disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(currentPage - 1)}
                         className="me-2"
                     >
-                        ← Anterior
+                        Anterior
                     </Button>
                     <span className="align-self-center mx-3">
                         Página {currentPage} de {totalPages}
                     </span>
                     <Button
                         variant="outline-primary"
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                         disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage(currentPage + 1)}
                     >
-                        Siguiente →
+                        Siguiente
                     </Button>
                     </div>
                 )}
@@ -366,23 +287,20 @@ const StudentsList = () => {
             </Col>
         </Row>
 
-        {/* Modal de confirmación de eliminación */}
+        {/* Modal de confirmación para eliminar */}
         <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
             <Modal.Header closeButton>
-            <Modal.Title>Confirmar eliminación</Modal.Title>
+            <Modal.Title>Confirmar Eliminación</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-            ¿Estás seguro de que quieres eliminar al estudiante{" "}
-            <strong>
-                {studentToDelete?.firstName} {studentToDelete?.lastName}
-            </strong>
-            ? Esta acción no se puede deshacer.
+            ¿Estás seguro de que deseas eliminar al estudiante <strong>{selectedStudent?.name}</strong>? Esta acción no se
+            puede deshacer.
             </Modal.Body>
             <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={actionLoading}>
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
                 Cancelar
             </Button>
-            <Button variant="danger" onClick={handleDeleteConfirm} disabled={actionLoading}>
+            <Button variant="danger" onClick={handleDeleteStudent} disabled={actionLoading}>
                 {actionLoading ? "Eliminando..." : "Eliminar"}
             </Button>
             </Modal.Footer>
