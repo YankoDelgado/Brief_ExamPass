@@ -126,10 +126,10 @@ const Login = () => {
                 <Card.Body className="p-3">
                     <h6 className="text-info mb-2">Cuentas de prueba:</h6>
                     <small className="text-muted d-block">
-                    <strong>Admin:</strong> admin@test.com / password123
+                    <strong>Admin:</strong> admin@exampass.com / 12345678
                     </small>
                     <small className="text-muted d-block">
-                    <strong>Estudiante:</strong> student@test.com / password123
+                    <strong>Estudiante:</strong> estudiante@exampass.com / 12345678
                     </small>
                 </Card.Body>
                 </Card>
