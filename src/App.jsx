@@ -1,15 +1,15 @@
 import { Routes, Route, Navigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext"
 
-//Componentes base
+// Componentes base
 import PrivateRoute from "./components/PrivateRoute"
 import Layout from "./components/Layout"
 
-//Páginas de autenticación
+// Páginas de autenticación
 import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
 
-//Páginas de Admin
+// Páginas de Admin
 import AdminDashboard from "./pages/admin/Dashboard"
 import ProfessorsList from "./pages/admin/professors/ProfessorsList"
 import ProfessorsCreate from "./pages/admin/professors/ProfessorsCreate"
@@ -30,7 +30,7 @@ import StudentsList from "./pages/admin/students/StudentsList"
 import StudentsView from "./pages/admin/students/StudentsView"
 import AdminSettings from "./pages/admin/AdminSettings"
 
-//Páginas de Estudiante
+// Páginas de Estudiante
 import StudentDashboard from "./pages/student/Dashboard"
 import StudentOnboarding from "./pages/student/StudentOnboarding"
 import ExamAvailable from "./pages/student/exam/ExamAvailable"
@@ -40,14 +40,14 @@ import StudentReports from "./pages/student/reports/StudentReports"
 import StudentReportView from "./pages/student/reports/StudentReportView"
 import StudentProfile from "./pages/student/StudentProfile"
 
-//Páginas compartidas
+// Páginas compartidas
 import UserProfile from "./pages/shared/UserProfile"
 
-//Páginas de error
+// Páginas de error
 import Unauthorized from "./pages/Unauthorized"
 import NotFound from "./pages/NotFound"
 
-//Spinner de carga
+// Spinner de carga
 import { Spinner, Container } from "react-bootstrap"
 
 function App() {
@@ -119,7 +119,7 @@ function App() {
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="reports/statistics" element={<AdminStatistics />} />
                 <Route path="reports/student/:userId" element={<StudentReport />} />
-                
+
                 {/* Gestión de Estudiantes */}
                 <Route path="students" element={<StudentsList />} />
                 <Route path="students/:id" element={<StudentsView />} />

@@ -11,13 +11,13 @@ const Login = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
 
-    const {login} = useAuth()
+    const { login } = useAuth()
     const navigate = useNavigate()
 
     const handleChange = (e) => {
         setFormData({
-        ...formData,
-        [e.target.name]: e.target.value,
+            ...formData,
+            [e.target.name]: e.target.value,
         })
     }
 
@@ -26,7 +26,7 @@ const Login = () => {
         setLoading(true)
         setError("")
 
-        //Validaciones básicas
+        // Validaciones básicas
         if (!formData.email || !formData.password) {
             setError("Por favor completa todos los campos")
             setLoading(false)
@@ -36,12 +36,12 @@ const Login = () => {
         try {
             const result = await login(formData.email, formData.password)
 
-            if(result.success) {
-                //Redirigir según el rol
+            if (result.success) {
+                // Redirigir según el rol
                 if (result.user.role === "ADMIN") {
-                    navigate("/admin/dashboard")
+                navigate("/admin/dashboard")
                 } else {
-                    navigate("/student/dashboard")
+                navigate("/student/dashboard")
                 }
             } else {
                 setError(result.error)
@@ -120,7 +120,8 @@ const Login = () => {
                 </Card.Body>
             </Card>
 
-            {process.env.NODE_ENV === "development" && (
+            {/* Información de prueba para desarrollo */}
+            {import.meta.env.DEV && (
                 <Card className="mt-3 border-info">
                 <Card.Body className="p-3">
                     <h6 className="text-info mb-2">Cuentas de prueba:</h6>

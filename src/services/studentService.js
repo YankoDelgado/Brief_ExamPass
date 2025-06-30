@@ -1,91 +1,123 @@
-import API from "../config/axios"
+import axios from "../config/axios"
 
-export const studentService = {
-    // Obtener dashboard del estudiante
-    getDashboardData: async () => {
-        try {
-            const response = await API.get("/student/dashboard")
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo datos del dashboard:", error)
-            throw error
-        }
-    },
+// Obtener todos los estudiantes (Admin)
+export const getAllStudents = async (params = {}) => {
+    try {
+        const response = await axios.get("/admin/students", { params })
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
 
-    // Obtener exámenes disponibles
-    getAvailableExams: async () => {
-        try {
-            const response = await API.get("/exams/available")
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo exámenes disponibles:", error)
-            throw error
-        }
-    },
+// Obtener estudiante por ID (Admin)
+export const getStudentById = async (id) => {
+    try {
+        const response = await axios.get(`/admin/students/${id}`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
 
-    // Obtener mis reportes
-    getMyReports: async () => {
-        try {
-            const response = await API.get("/reports/my/reports")
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo reportes:", error)
-            throw error
-        }
-    },
+// Crear nuevo estudiante (Admin)
+export const createStudent = async (studentData) => {
+    try {
+        const response = await axios.post("/admin/students", studentData)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
 
-    // Obtener mi último resultado
-    getLastResult: async () => {
-        try {
-            const response = await API.get("/student/last-result")
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo último resultado:", error)
-            return null
-        }
-    },
+// Actualizar estudiante (Admin)
+export const updateStudent = async (id, studentData) => {
+    try {
+        const response = await axios.put(`/admin/students/${id}`, studentData)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
 
-    // Generar reporte después del examen
-    generateReport: async (examResultId) => {
-        try {
-            const response = await API.post(`/reports/generate/${examResultId}`)
-            return response.data
-        } catch (error) {
-            console.error("Error generando reporte:", error)
-            throw error
-        }
-    },
+// Eliminar estudiante (Admin)
+export const deleteStudent = async (id) => {
+    try {
+        const response = await axios.delete(`/admin/students/${id}`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
 
-    // Obtener reporte específico
-    getReport: async (reportId) => {
-        try {
-            const response = await API.get(`/reports/${reportId}`)
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo reporte:", error)
-            throw error
-        }
-    },
+// Activar/Desactivar estudiante
+export const toggleStudentStatus = async (id) => {
+    try {
+        const response = await axios.patch(`/admin/students/${id}/toggle-status`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+    }
 
-    // Obtener historial de exámenes
-    getExamHistory: async () => {
-        try {
-            const response = await API.get("/student/exam-history")
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo historial:", error)
-            throw error
-        }
-    },
+// Resetear contraseña de estudiante
+export const resetStudentPassword = async (id) => {
+    try {
+        const response = await axios.patch(`/admin/students/${id}/reset-password`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
 
-    // Obtener estadísticas personales
-    getPersonalStats: async () => {
-        try {
-            const response = await API.get("/student/statistics")
-            return response.data
-        } catch (error) {
-            console.error("Error obteniendo estadísticas:", error)
-            throw error
-        }
-    },
+// Obtener estadísticas de estudiante
+export const getStudentStats = async (id) => {
+    try {
+        const response = await axios.get(`/admin/students/${id}/stats`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
+
+// Obtener historial de exámenes de estudiante
+export const getStudentExamHistory = async (id) => {
+    try {
+        const response = await axios.get(`/admin/students/${id}/exam-history`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
+
+// Exportar datos de estudiantes
+export const exportStudentsData = async (format = "csv") => {
+    try {
+        const response = await axios.get(`/admin/students/export?format=${format}`, {
+        responseType: "blob",
+        })
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
+
+// Suspender estudiante
+export const suspendStudent = async (id, reason) => {
+    try {
+        const response = await axios.patch(`/admin/students/${id}/suspend`, { reason })
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
+}
+
+// Reactivar estudiante suspendido
+export const reactivateStudent = async (id) => {
+    try {
+        const response = await axios.patch(`/admin/students/${id}/reactivate`)
+        return response.data
+    } catch (error) {
+        throw error.response?.data || error.message
+    }
 }
